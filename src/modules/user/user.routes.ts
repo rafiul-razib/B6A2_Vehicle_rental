@@ -5,6 +5,10 @@ const router = Router();
 
 router.get("/", userController.getAllUsers);
 
-router.get("/:id", userController.getSingleUser);
+router.get("/:userId", userController.getSingleUser);
+
+router.put("/:userId", userController.updateUser);
+
+router.delete("/:userId", userController.deleteUser);
 
 export const userRouter = router;
