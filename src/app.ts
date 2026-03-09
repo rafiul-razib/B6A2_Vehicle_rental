@@ -4,6 +4,7 @@ import { authRoutes } from "./modules/auth/auth.routes";
 import { userRouter } from "./modules/user/user.routes";
 import { vehiclesRouter } from "./modules/vehicles/vehicles.routes";
 import { bookingRouter } from "./modules/bookings/bookings.routes";
+import auth from "./middlewares/auth";
 
 const app = express();
 
