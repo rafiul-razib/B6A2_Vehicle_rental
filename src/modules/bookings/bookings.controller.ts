@@ -142,10 +142,14 @@ const getBookings = async (req: Request, res: Response) => {
 
 const updateBooking = async (req: Request, res: Response) => {
   const { status } = req.body;
+  const userRole = (req as any).user.role;
+  const userId = (req as any).user.userId;
   try {
     const result = await bookingServices.updateBooking(
+      userRole,
       status,
       req.params.bookingId as string,
+      userId,
     );
     res.status(200).json({
       success: true,

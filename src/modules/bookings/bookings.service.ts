@@ -10,6 +10,19 @@ type TBooking = {
 const postBooking = async (payload: TBooking, total_price: number) => {
   const { customer_id, vehicle_id, rent_start_date, rent_end_date } = payload;
 
+  const overlappingBooking = await pool.query(
+    `SELECT FROM bookings
+    WHERE vehicle_id = $1
+    AND status = "active"
+    AND rent_start_date <= $2
+    AND rent_end_date >=$3`,
+    [vehicle_id, rent_end_date, rent_start_date],
+  );
+
+  if (overlappingBooking.rows.length > 0) {
+    throw new Error("Vehicle already booked for the selected dates");
+  }
+
   const result = await pool.query(
     `INSERT INTO bookings(customer_id, vehicle_id, rent_start_date, rent_end_date, total_price, status) VALUES($1, $2, $3, $4, $5, $6) RETURNING *`,
     [
@@ -20,6 +33,10 @@ const postBooking = async (payload: TBooking, total_price: number) => {
       total_price,
       "active",
     ],
+  );
+  await pool.query(
+    `UPDATE vehicles SET availability_status = 'booked' Where id=$1`,
+    [vehicle_id],
   );
 
   return result;
@@ -64,13 +81,72 @@ const getBookings = async (userRole: string, userId: string) => {
   }
 };
 
-const updateBooking = async (status: string, bookingId: string) => {
-  const result = await pool.query(
-    `UPDATE bookings SET status = $1 WHERE id =$2 RETURNING *`,
-    [status, bookingId],
-  );
+const updateBooking = async (
+  userRole: string,
+  status: "cancelled" | "returned",
+  bookingId: string,
+  userId: string,
+) => {
+  const booking = await pool.query(`SELECT * FROM bookings WHERE id=$1`, [
+    bookingId,
+  ]);
 
-  return result;
+  if (booking.rows.length === 0) {
+    throw new Error("Booking not found");
+  }
+
+  const data = booking.rows[0];
+  const today = new Date();
+  const startDate = new Date(data.rent_start_date);
+  const endDate = new Date(data.rent_end_date);
+
+  // System
+  if (today > endDate && data.status === "active") {
+    const result = await pool.query(
+      `UPDATE bookings SET status = 'returned' WHERE id =$1`,
+      [bookingId],
+    );
+    await pool.query(
+      `UPDATE vehicles SET availability_status = 'available' WHERE id = $1`,
+      [data.vehicle_id],
+    );
+    return result;
+  }
+
+  // Customer
+  if (userRole === "customer") {
+    if (data.customer_id !== Number(userId)) {
+      throw new Error("You cannot cancel someone else's booking");
+    }
+    if (today >= startDate) {
+      throw new Error("Cannot cancel booking after start date");
+    }
+    const result = await pool.query(
+      `UPDATE bookings SET status = 'cancelled' WHERE id =$1 RETURNING *`,
+      [bookingId],
+    );
+    await pool.query(
+      `UPDATE vehicles SET availability_status = 'available' WHERE id =$1`,
+      [data.vehicle_id],
+    );
+    return result;
+  }
+
+  // admin
+
+  if (userRole === "admin") {
+    const result = await pool.query(
+      `UPDATE bookings SET status = 'returned' WHERE id = $1 RETURNING *`,
+      [bookingId],
+    );
+    await pool.query(
+      `UPDATE vehicles SET availability_status='available' WHERE id = $1`,
+      [data.vehicle_id],
+    );
+    return result;
+  }
+
+  throw new Error("Unauthorised action!");
 };
 
 export const bookingServices = {
