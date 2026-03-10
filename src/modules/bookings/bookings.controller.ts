@@ -65,7 +65,7 @@ const postBooking = async (req: Request, res: Response) => {
   const totalPrice = daily_rent_price * totalDays;
   try {
     const result = await bookingServices.postBooking(req.body, totalPrice);
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: "Vehicle booked successfully!",
       data: {

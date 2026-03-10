@@ -12,7 +12,7 @@ const checkActiveBookings = async (
       [req.params.userId],
     );
     if (result.rows.length > 0) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
         message: "User has active booking and cannot be deleted",
       });
