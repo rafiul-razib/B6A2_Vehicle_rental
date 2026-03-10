@@ -25,8 +25,27 @@ const postBooking = async (payload: TBooking, total_price: number) => {
   return result;
 };
 
-const getBookings = async () => {
-  const result = await pool.query(` SELECT 
+const getBookings = async (userRole: string, userId: string) => {
+  if (userRole !== "admin") {
+    const result = await pool.query(
+      ` SELECT 
+      b.id,
+      b.vehicle_id,
+      b.rent_start_date,
+      b.rent_end_date,
+      b.total_price,
+      b.status,
+      v.vehicle_name,
+      v.registration_number,
+      v.type
+    FROM bookings b
+    JOIN users u ON b.customer_id = u.id
+    JOIN vehicles v ON b.vehicle_id = v.id WHERE customer_id=$1`,
+      [userId],
+    );
+    return result;
+  } else {
+    const result = await pool.query(` SELECT 
       b.id,
       b.customer_id,
       b.vehicle_id,
@@ -41,7 +60,8 @@ const getBookings = async () => {
     FROM bookings b
     JOIN users u ON b.customer_id = u.id
     JOIN vehicles v ON b.vehicle_id = v.id`);
-  return result;
+    return result;
+  }
 };
 
 const updateBooking = async (status: string, bookingId: string) => {

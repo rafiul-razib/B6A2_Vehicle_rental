@@ -85,30 +85,53 @@ const postBooking = async (req: Request, res: Response) => {
 };
 
 const getBookings = async (req: Request, res: Response) => {
+  const userRole = (req as any).user.role;
+  const userId = (req as any).user.userId;
   try {
-    const result = await bookingServices.getBookings();
-    const bookings = result.rows.map((row) => ({
-      id: row.id,
-      customer_id: row.customer_id,
-      vehicle_id: row.vehicle_id,
-      rent_start_date: row.rent_start_date,
-      rent_end_date: row.rent_end_date,
-      total_price: row.total_price,
-      status: row.status,
-      customer: {
-        name: row.customer_name,
-        email: row.customer_email,
-      },
-      vehicle: {
-        vehicle_name: row.vehicle_name,
-        registration_number: row.registration_number,
-      },
-    }));
-    res.status(200).json({
-      success: true,
-      message: "All Bookings Retrieved Successfully!",
-      data: bookings,
-    });
+    const result = await bookingServices.getBookings(userRole, userId);
+    if (userRole === "admin") {
+      const bookings = result.rows.map((row) => ({
+        id: row.id,
+        customer_id: row.customer_id,
+        vehicle_id: row.vehicle_id,
+        rent_start_date: row.rent_start_date,
+        rent_end_date: row.rent_end_date,
+        total_price: row.total_price,
+        status: row.status,
+        customer: {
+          name: row.customer_name,
+          email: row.customer_email,
+        },
+        vehicle: {
+          vehicle_name: row.vehicle_name,
+          registration_number: row.registration_number,
+        },
+      }));
+      res.status(200).json({
+        success: true,
+        message: "All Bookings Retrieved Successfully!",
+        data: bookings,
+      });
+    } else {
+      const bookings = result.rows.map((row) => ({
+        id: row.id,
+        vehicle_id: row.vehicle_id,
+        rent_start_date: row.rent_start_date,
+        rent_end_date: row.rent_end_date,
+        total_price: row.total_price,
+        status: row.status,
+        vehicle: {
+          vehicle_name: row.vehicle_name,
+          registration_number: row.registration_number,
+          type: row.type,
+        },
+      }));
+      res.status(200).json({
+        success: true,
+        message: "Your bookings Retrieved Successfully!",
+        data: bookings,
+      });
+    }
   } catch (err: any) {
     res.status(500).json({
       success: false,

@@ -68,11 +68,18 @@ const deleteUser = async (req: Request, res: Response) => {
 
 const updateUser = async (req: Request, res: Response) => {
   const { name, role, email, phone } = req.body;
+  const userRole = (req as any).user.role;
+  let updatedRole = role;
+
+  if (userRole !== "admin") {
+    updatedRole = undefined;
+  }
+
   try {
     const result = await userServices.updateUser(
       name,
-      role,
       email,
+      updatedRole,
       phone,
       req.params.userId as string,
     );
